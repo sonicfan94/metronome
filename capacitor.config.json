@@ -1,0 +1,8 @@
+{
+  "appId": "com.achandler.scaletrainer",
+  "appName": "Scale Trainer",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "always"
+  }
+}

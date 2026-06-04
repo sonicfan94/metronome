@@ -15,6 +15,9 @@ const scheduleAheadTime = 0.1; // seconds of audio to schedule ahead
 let beatsSinceRamp = 0;
 let rampStartTime = 0;
 
+// Pendulum state
+let pendulumDir = 1;       // alternates each beat so the arm swings side to side
+
 // ---- DOM ----
 const $ = (id) => document.getElementById(id);
 const bpmNumber = $("bpmNumber");
@@ -22,6 +25,8 @@ const bpmSlider = $("bpmSlider");
 const beatDots = $("beatDots");
 const playBtn = $("playBtn");
 const rampStatus = $("rampStatus");
+const pendulum = $("pendulum");
+const tapBtn = $("tapBtn");
 
 let bpm = 100;
 
@@ -32,9 +37,9 @@ function setBpm(v) {
 }
 
 // ---- BPM controls ----
-bpmSlider.addEventListener("input", (e) => setBpm(+e.target.value));
-$("bpmUp").addEventListener("click", () => setBpm(bpm + 1));
-$("bpmDown").addEventListener("click", () => setBpm(bpm - 1));
+bpmSlider.addEventListener("input", (e) => { setBpm(+e.target.value); saveSettings(); });
+$("bpmUp").addEventListener("click", () => { setBpm(bpm + 1); saveSettings(); });
+$("bpmDown").addEventListener("click", () => { setBpm(bpm - 1); saveSettings(); });
 
 // ---- Beat dots ----
 function buildDots() {
@@ -46,13 +51,28 @@ function buildDots() {
     beatDots.appendChild(d);
   }
 }
-$("beatsPerBar").addEventListener("change", buildDots);
+$("beatsPerBar").addEventListener("change", () => { buildDots(); saveSettings(); });
 buildDots();
 
 function flashDot(beat) {
   const dots = beatDots.children;
   for (const d of dots) d.classList.remove("active");
   if (dots[beat]) dots[beat].classList.add("active");
+}
+
+// ---- Pendulum swing (synced to the audible beat) ----
+function swingPendulum(secondsPerBeat) {
+  if (!pendulum) return;
+  pendulum.style.transitionDuration = secondsPerBeat + "s";
+  pendulumDir *= -1;
+  pendulum.style.transform = `translateX(-50%) rotate(${pendulumDir * 14}deg)`;
+}
+function resetPendulum() {
+  if (!pendulum) return;
+  pendulum.classList.remove("swinging");
+  pendulum.style.transitionDuration = "0.3s";
+  pendulum.style.transform = "translateX(-50%) rotate(0deg)";
+  pendulumDir = 1;
 }
 
 // ---- Click sound ----
@@ -98,8 +118,15 @@ function scheduleNote(time) {
 
   if (isMainBeat) {
     const beat = currentBeat;
+    const spb = 60.0 / bpm;
     const delay = (time - audioCtx.currentTime) * 1000;
-    setTimeout(() => { if (isPlaying) flashDot(beat); }, Math.max(0, delay));
+    // Drive every beat-synced visual/haptic from this single callback.
+    setTimeout(() => {
+      if (!isPlaying) return;
+      flashDot(beat);
+      swingPendulum(spb);
+      Haptics.beat(beat === 0 && $("accent").checked);
+    }, Math.max(0, delay));
   }
 }
 
@@ -109,6 +136,43 @@ function scheduler() {
     nextNote();
   }
 }
+
+// ===================== Haptics =====================
+// Capacitor Haptics on iOS/Android native; navigator.vibrate as a web fallback
+// (note: iOS Safari ignores navigator.vibrate, which is why the native plugin matters).
+const Haptics = {
+  on() { return $("haptics").checked; },
+  beat(accent) {
+    if (!this.on()) return;
+    const cap = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
+    if (cap) {
+      try { cap.impact({ style: accent ? "MEDIUM" : "LIGHT" }); } catch (e) {}
+    } else if (navigator.vibrate) {
+      navigator.vibrate(accent ? 18 : 9);
+    }
+  }
+};
+$("haptics").addEventListener("change", () => { Haptics.beat(true); saveSettings(); });
+
+// ===================== Tap tempo =====================
+let tapTimes = [];
+function tapTempo() {
+  const now = performance.now();
+  if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000) tapTimes = [];
+  tapTimes.push(now);
+  if (tapTimes.length > 6) tapTimes.shift();
+
+  if (tapTimes.length >= 2) {
+    let sum = 0;
+    for (let i = 1; i < tapTimes.length; i++) sum += tapTimes[i] - tapTimes[i - 1];
+    const avgMs = sum / (tapTimes.length - 1);
+    if (avgMs > 0) { setBpm(60000 / avgMs); saveSettings(); }
+  }
+  tapBtn.classList.add("flash");
+  setTimeout(() => tapBtn.classList.remove("flash"), 90);
+  Haptics.beat(false);
+}
+tapBtn.addEventListener("click", tapTempo);
 
 // ===================== Speed trainer =====================
 function rampOn() { return $("rampEnabled").checked; }
@@ -173,10 +237,12 @@ $("rampEnabled").addEventListener("change", () => {
   rampGrid.classList.toggle("enabled", rampOn());
   updateRampStatus();
   if (isPlaying) startSecondsRamp();
+  saveSettings();
 });
-["rampUnit","rampEvery","rampAmount","rampMax"].forEach(id =>
-  $(id).addEventListener("change", () => { if (isPlaying) startSecondsRamp(); updateRampStatus(); })
+["rampUnit","rampEvery","rampAmount","rampMax","subdivision"].forEach(id =>
+  $(id).addEventListener("change", () => { if (isPlaying) startSecondsRamp(); updateRampStatus(); saveSettings(); })
 );
+$("accent").addEventListener("change", saveSettings);
 
 // ===================== Transport =====================
 function start() {
@@ -192,7 +258,8 @@ function start() {
   startSecondsRamp();
   updateRampStatus();
 
-  playBtn.textContent = "■ Stop";
+  pendulum.classList.add("swinging");
+  playBtn.innerHTML = '<span class="play-ico">■</span> Stop';
   playBtn.classList.add("playing");
 }
 
@@ -201,7 +268,8 @@ function stop() {
   clearInterval(schedulerTimer);
   stopSecondsRamp();
   for (const d of beatDots.children) d.classList.remove("active");
-  playBtn.textContent = "▶ Start";
+  resetPendulum();
+  playBtn.innerHTML = '<span class="play-ico">▶</span> Start';
   playBtn.classList.remove("playing");
   rampStatus.textContent = "";
 }
@@ -214,6 +282,120 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     isPlaying ? stop() : start();
   }
+});
+
+// ===================== Persistence & presets =====================
+// localStorage works reliably inside the iOS WKWebView Capacitor uses; the thin
+// Store wrapper keeps the door open for @capacitor/preferences later if needed.
+const SETTINGS_KEY = "st_settings_v1";
+const PRESETS_KEY = "st_presets_v1";
+const Store = {
+  get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } },
+  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+};
+
+function collectSettings() {
+  return {
+    bpm,
+    beatsPerBar: $("beatsPerBar").value,
+    subdivision: $("subdivision").value,
+    accent: $("accent").checked,
+    haptics: $("haptics").checked,
+    rampEnabled: $("rampEnabled").checked,
+    rampAmount: $("rampAmount").value,
+    rampEvery: $("rampEvery").value,
+    rampUnit: $("rampUnit").value,
+    rampMax: $("rampMax").value
+  };
+}
+
+function applySettings(s) {
+  if (!s) return;
+  if (s.bpm) setBpm(s.bpm);
+  if (s.beatsPerBar) $("beatsPerBar").value = s.beatsPerBar;
+  if (s.subdivision) $("subdivision").value = s.subdivision;
+  $("accent").checked = !!s.accent;
+  $("haptics").checked = !!s.haptics;
+  $("rampEnabled").checked = !!s.rampEnabled;
+  if (s.rampAmount != null) $("rampAmount").value = s.rampAmount;
+  if (s.rampEvery != null) $("rampEvery").value = s.rampEvery;
+  if (s.rampUnit) $("rampUnit").value = s.rampUnit;
+  if (s.rampMax != null) $("rampMax").value = s.rampMax;
+  buildDots();
+  rampGrid.classList.toggle("enabled", rampOn());
+  updateRampStatus();
+}
+
+let restoring = false;
+function saveSettings() {
+  if (restoring) return;        // don't thrash storage while applying a preset
+  Store.set(SETTINGS_KEY, collectSettings());
+}
+
+// ---- Named presets ----
+function getPresets() { return Store.get(PRESETS_KEY) || []; }
+function setPresets(arr) { Store.set(PRESETS_KEY, arr); }
+
+function renderPresets() {
+  const list = $("presetList");
+  const presets = getPresets();
+  list.innerHTML = "";
+  if (!presets.length) {
+    const p = document.createElement("p");
+    p.className = "preset-empty";
+    p.textContent = "No saved presets yet — name one above and hit Save.";
+    list.appendChild(p);
+    return;
+  }
+  presets.forEach((preset, idx) => {
+    const item = document.createElement("div");
+    item.className = "preset-item";
+
+    const load = document.createElement("button");
+    load.className = "p-load";
+    load.innerHTML = `<span class="p-name"></span> <span class="p-meta"></span>`;
+    load.querySelector(".p-name").textContent = preset.name;
+    load.querySelector(".p-meta").textContent =
+      `${preset.settings.bpm} BPM · ${preset.settings.beatsPerBar}/4`;
+    load.addEventListener("click", () => {
+      restoring = true;
+      applySettings(preset.settings);
+      restoring = false;
+      saveSettings();
+    });
+
+    const del = document.createElement("button");
+    del.className = "p-del";
+    del.textContent = "✕";
+    del.setAttribute("aria-label", `Delete preset ${preset.name}`);
+    del.addEventListener("click", () => {
+      const arr = getPresets();
+      arr.splice(idx, 1);
+      setPresets(arr);
+      renderPresets();
+    });
+
+    item.appendChild(load);
+    item.appendChild(del);
+    list.appendChild(item);
+  });
+}
+
+$("presetSave").addEventListener("click", () => {
+  const input = $("presetName");
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const arr = getPresets();
+  const settings = collectSettings();
+  const existing = arr.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+  if (existing >= 0) arr[existing] = { name, settings };
+  else arr.push({ name, settings });
+  setPresets(arr);
+  input.value = "";
+  renderPresets();
+});
+$("presetName").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); $("presetSave").click(); }
 });
 
 // ===================== Tab / fretboard generation =====================
@@ -336,3 +518,9 @@ function renderScales(filter = "") {
 
 $("scaleSearch").addEventListener("input", (e) => renderScales(e.target.value));
 renderScales();
+
+// ===================== Boot =====================
+restoring = true;
+applySettings(Store.get(SETTINGS_KEY));
+restoring = false;
+renderPresets();

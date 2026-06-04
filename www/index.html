@@ -2,32 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2a1a0e">
 <title>Scale Trainer Metronome</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>🎸 Scale Trainer</h1>
+    <div class="logo-badge">
+      <h1>Scale&nbsp;Trainer</h1>
+      <span class="logo-sub">METRONOME&nbsp;<i>v2.0</i></span>
+    </div>
     <p class="tagline">A metronome built for practicing guitar scales</p>
   </header>
 
   <main>
     <!-- ===== METRONOME ===== -->
     <section class="card metronome">
-      <div class="beat-dots" id="beatDots"></div>
+      <div class="card-sheen"></div>
+
+      <!-- Skeuomorphic pendulum -->
+      <div class="metro-body" id="metroBody">
+        <div class="metro-scale"></div>
+        <div class="pendulum" id="pendulum">
+          <div class="pendulum-rod"></div>
+          <div class="pendulum-weight"></div>
+        </div>
+        <div class="metro-pivot"></div>
+        <div class="beat-dots" id="beatDots"></div>
+      </div>
+
+      <!-- LCD readout -->
+      <div class="lcd-bezel">
+        <div class="lcd">
+          <span class="lcd-digits">
+            <span class="lcd-ghost">888</span>
+            <span class="lcd-num" id="bpmNumber">100</span>
+          </span>
+          <span class="lcd-unit">BPM</span>
+        </div>
+      </div>
 
       <div class="bpm-display">
         <button class="bpm-step" id="bpmDown" aria-label="Decrease BPM">−</button>
-        <div class="bpm-value">
-          <span id="bpmNumber">100</span>
-          <span class="bpm-label">BPM</span>
-        </div>
+        <input type="range" id="bpmSlider" min="40" max="240" value="100" class="slider">
         <button class="bpm-step" id="bpmUp" aria-label="Increase BPM">+</button>
       </div>
 
-      <input type="range" id="bpmSlider" min="40" max="240" value="100" class="slider">
+      <div class="action-row">
+        <button class="tap-btn" id="tapBtn">TAP<span>tempo</span></button>
+        <button class="play-btn" id="playBtn"><span class="play-ico">▶</span> Start</button>
+      </div>
 
       <div class="controls-row">
         <label class="field">
@@ -50,22 +78,28 @@
             <option value="4">Sixteenths</option>
           </select>
         </label>
-        <label class="field">
-          <span>Accent beat 1</span>
-          <input type="checkbox" id="accent" checked>
-        </label>
       </div>
 
-      <button class="play-btn" id="playBtn">▶ Start</button>
+      <div class="switch-row">
+        <label class="switch-field">
+          <span>Accent beat 1</span>
+          <span class="switch"><input type="checkbox" id="accent" checked><i></i></span>
+        </label>
+        <label class="switch-field">
+          <span>Haptics</span>
+          <span class="switch"><input type="checkbox" id="haptics"><i></i></span>
+        </label>
+      </div>
     </section>
 
     <!-- ===== SPEED TRAINER ===== -->
     <section class="card speedtrainer">
-      <h2>⏫ Speed Trainer</h2>
+      <div class="card-sheen"></div>
+      <h2><span class="ico">⏫</span> Speed Trainer</h2>
       <p class="hint">Automatically ramp the tempo up as you play.</p>
-      <label class="toggle-row">
-        <input type="checkbox" id="rampEnabled">
+      <label class="switch-field standalone">
         <span>Enable gradual speed-up</span>
+        <span class="switch"><input type="checkbox" id="rampEnabled"><i></i></span>
       </label>
 
       <div class="ramp-grid" id="rampGrid">
@@ -92,9 +126,22 @@
       <p class="ramp-status" id="rampStatus"></p>
     </section>
 
+    <!-- ===== PRESETS ===== -->
+    <section class="card presets">
+      <div class="card-sheen"></div>
+      <h2><span class="ico">💾</span> Presets</h2>
+      <p class="hint">Save the current tempo &amp; settings to recall later. Your last setup is remembered automatically.</p>
+      <div class="preset-save">
+        <input type="text" id="presetName" class="search" placeholder="Preset name…" maxlength="40">
+        <button class="mini-btn" id="presetSave">Save</button>
+      </div>
+      <div class="preset-list" id="presetList"></div>
+    </section>
+
     <!-- ===== SCALES ===== -->
     <section class="card scales">
-      <h2>📚 Top 20 Guitar Scales</h2>
+      <div class="card-sheen"></div>
+      <h2><span class="ico">📚</span> Top 20 Guitar Scales</h2>
       <p class="hint">Tap a scale to see its pattern. Degrees are scale steps; "W" = whole step, "H" = half step.</p>
       <input type="text" id="scaleSearch" class="search" placeholder="Search scales…">
       <div class="scale-list" id="scaleList"></div>
