@@ -1,0 +1,6 @@
+# OS / editor junk
+.DS_Store
+*.swp
+
+# Local share artifact (not needed in the repo)
+scale-trainer.zip

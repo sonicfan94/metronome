@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scale Trainer Metronome</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎸 Scale Trainer</h1>
+    <p class="tagline">A metronome built for practicing guitar scales</p>
+  </header>
+
+  <main>
+    <!-- ===== METRONOME ===== -->
+    <section class="card metronome">
+      <div class="beat-dots" id="beatDots"></div>
+
+      <div class="bpm-display">
+        <button class="bpm-step" id="bpmDown" aria-label="Decrease BPM">−</button>
+        <div class="bpm-value">
+          <span id="bpmNumber">100</span>
+          <span class="bpm-label">BPM</span>
+        </div>
+        <button class="bpm-step" id="bpmUp" aria-label="Increase BPM">+</button>
+      </div>
+
+      <input type="range" id="bpmSlider" min="40" max="240" value="100" class="slider">
+
+      <div class="controls-row">
+        <label class="field">
+          <span>Beats / bar</span>
+          <select id="beatsPerBar">
+            <option>2</option>
+            <option>3</option>
+            <option selected>4</option>
+            <option>5</option>
+            <option>6</option>
+            <option>7</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Subdivision</span>
+          <select id="subdivision">
+            <option value="1">Quarter</option>
+            <option value="2">Eighths</option>
+            <option value="3">Triplets</option>
+            <option value="4">Sixteenths</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Accent beat 1</span>
+          <input type="checkbox" id="accent" checked>
+        </label>
+      </div>
+
+      <button class="play-btn" id="playBtn">▶ Start</button>
+    </section>
+
+    <!-- ===== SPEED TRAINER ===== -->
+    <section class="card speedtrainer">
+      <h2>⏫ Speed Trainer</h2>
+      <p class="hint">Automatically ramp the tempo up as you play.</p>
+      <label class="toggle-row">
+        <input type="checkbox" id="rampEnabled">
+        <span>Enable gradual speed-up</span>
+      </label>
+
+      <div class="ramp-grid" id="rampGrid">
+        <label class="field">
+          <span>Increase by (BPM)</span>
+          <input type="number" id="rampAmount" value="5" min="1" max="50">
+        </label>
+        <label class="field">
+          <span>Every</span>
+          <input type="number" id="rampEvery" value="4" min="1" max="64">
+        </label>
+        <label class="field">
+          <span>Unit</span>
+          <select id="rampUnit">
+            <option value="bars" selected>bars</option>
+            <option value="seconds">seconds</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Stop at (BPM)</span>
+          <input type="number" id="rampMax" value="160" min="40" max="300">
+        </label>
+      </div>
+      <p class="ramp-status" id="rampStatus"></p>
+    </section>
+
+    <!-- ===== SCALES ===== -->
+    <section class="card scales">
+      <h2>📚 Top 20 Guitar Scales</h2>
+      <p class="hint">Tap a scale to see its pattern. Degrees are scale steps; "W" = whole step, "H" = half step.</p>
+      <input type="text" id="scaleSearch" class="search" placeholder="Search scales…">
+      <div class="scale-list" id="scaleList"></div>
+    </section>
+  </main>
+
+  <footer>Built for guitar practice • use headphones for the clearest click</footer>
+</div>
+
+<script src="scales.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
