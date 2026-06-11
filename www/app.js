@@ -15,31 +15,109 @@ const scheduleAheadTime = 0.1; // seconds of audio to schedule ahead
 let beatsSinceRamp = 0;
 let rampStartTime = 0;
 
-// Pendulum state
-let pendulumDir = 1;       // alternates each beat so the arm swings side to side
-
 // ---- DOM ----
 const $ = (id) => document.getElementById(id);
 const bpmNumber = $("bpmNumber");
-const bpmSlider = $("bpmSlider");
 const beatDots = $("beatDots");
 const playBtn = $("playBtn");
 const rampStatus = $("rampStatus");
-const pendulum = $("pendulum");
 const tapBtn = $("tapBtn");
+const beatPulse = $("beatPulse");
+const tempoMark = $("tempoMark");
+const metroFab = $("metroFab");
+const metroFabGlyph = $("metroFabGlyph");
+const metroFabBpm = $("metroFabBpm");
 
 let bpm = 100;
 
 function setBpm(v) {
   bpm = Math.min(240, Math.max(40, Math.round(v)));
   bpmNumber.textContent = bpm;
-  bpmSlider.value = bpm;
+  metroFabBpm.textContent = bpm;
+  tempoMark.textContent = tempoName(bpm);
+  drawDial();
 }
 
-// ---- BPM controls ----
-bpmSlider.addEventListener("input", (e) => { setBpm(+e.target.value); saveSettings(); });
+// Italian tempo markings for the center label
+function tempoName(b) {
+  if (b <= 60)  return "Largo";
+  if (b <= 76)  return "Adagio";
+  if (b <= 100) return "Andante";
+  if (b <= 120) return "Moderato";
+  if (b <= 156) return "Allegro";
+  if (b <= 176) return "Vivace";
+  return "Presto";
+}
+
+// ===================== Tempo dial =====================
+// A circular hairline dial: 300° sweep with a gap at the bottom. The red knob can
+// be dragged around the arc to set the tempo; +/- buttons nudge by one.
+const dial = $("dial");
+const dialWrap = $("dialWrap");
+const dialTrack = $("dialTrack");
+const dialProg = $("dialProg");
+const dialKnob = $("dialKnob");
+const DIAL = { cx: 120, cy: 120, r: 100, a0: -150, a1: 150, min: 40, max: 240 };
+
+function polar(angleDeg) {
+  const t = (angleDeg * Math.PI) / 180;
+  return [DIAL.cx + DIAL.r * Math.sin(t), DIAL.cy - DIAL.r * Math.cos(t)];
+}
+function bpmToAngle(b) {
+  return DIAL.a0 + ((b - DIAL.min) / (DIAL.max - DIAL.min)) * (DIAL.a1 - DIAL.a0);
+}
+function arcPath(fromA, toA) {
+  const [x0, y0] = polar(fromA);
+  const [x1, y1] = polar(toA);
+  const large = toA - fromA > 180 ? 1 : 0;
+  return `M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${DIAL.r} ${DIAL.r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+}
+function drawDial() {
+  if (!dial) return;
+  dialTrack.setAttribute("d", arcPath(DIAL.a0, DIAL.a1));
+  const a = bpmToAngle(bpm);
+  dialProg.setAttribute("d", arcPath(DIAL.a0, a));
+  const [kx, ky] = polar(a);
+  dialKnob.setAttribute("cx", kx.toFixed(2));
+  dialKnob.setAttribute("cy", ky.toFixed(2));
+}
+
+function bpmFromPoint(clientX, clientY) {
+  const rect = dial.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  let t = (Math.atan2(clientX - cx, -(clientY - cy)) * 180) / Math.PI; // 0 = top, cw +
+  if (t > DIAL.a1) t = DIAL.a1;
+  if (t < DIAL.a0) t = DIAL.a0;
+  return DIAL.min + ((t - DIAL.a0) / (DIAL.a1 - DIAL.a0)) * (DIAL.max - DIAL.min);
+}
+
+let dragging = false;
+function dialPointerDown(e) {
+  dragging = true;
+  dialWrap.classList.add("dragging");
+  dial.setPointerCapture && dial.setPointerCapture(e.pointerId);
+  setBpm(bpmFromPoint(e.clientX, e.clientY));
+  saveSettings();
+}
+function dialPointerMove(e) {
+  if (!dragging) return;
+  setBpm(bpmFromPoint(e.clientX, e.clientY));
+}
+function dialPointerUp() {
+  if (!dragging) return;
+  dragging = false;
+  dialWrap.classList.remove("dragging");
+  saveSettings();
+}
+dial.addEventListener("pointerdown", dialPointerDown);
+dial.addEventListener("pointermove", dialPointerMove);
+dial.addEventListener("pointerup", dialPointerUp);
+dial.addEventListener("pointercancel", dialPointerUp);
+
 $("bpmUp").addEventListener("click", () => { setBpm(bpm + 1); saveSettings(); });
 $("bpmDown").addEventListener("click", () => { setBpm(bpm - 1); saveSettings(); });
+drawDial();
 
 // ---- Beat dots ----
 function buildDots() {
@@ -60,19 +138,13 @@ function flashDot(beat) {
   if (dots[beat]) dots[beat].classList.add("active");
 }
 
-// ---- Pendulum swing (synced to the audible beat) ----
-function swingPendulum(secondsPerBeat) {
-  if (!pendulum) return;
-  pendulum.style.transitionDuration = secondsPerBeat + "s";
-  pendulumDir *= -1;
-  pendulum.style.transform = `translateX(-50%) rotate(${pendulumDir * 14}deg)`;
-}
-function resetPendulum() {
-  if (!pendulum) return;
-  pendulum.classList.remove("swinging");
-  pendulum.style.transitionDuration = "0.3s";
-  pendulum.style.transform = "translateX(-50%) rotate(0deg)";
-  pendulumDir = 1;
+// ---- Beat pulse (center of the dial, synced to the audible beat) ----
+function pulse(isAccent) {
+  if (!beatPulse) return;
+  beatPulse.classList.remove("hit", "accent");
+  void beatPulse.offsetWidth;          // restart the CSS animation
+  beatPulse.classList.add("hit");
+  if (isAccent) beatPulse.classList.add("accent");
 }
 
 // ---- Click sound ----
@@ -118,13 +190,12 @@ function scheduleNote(time) {
 
   if (isMainBeat) {
     const beat = currentBeat;
-    const spb = 60.0 / bpm;
     const delay = (time - audioCtx.currentTime) * 1000;
     // Drive every beat-synced visual/haptic from this single callback.
     setTimeout(() => {
       if (!isPlaying) return;
       flashDot(beat);
-      swingPendulum(spb);
+      pulse(beat === 0 && $("accent").checked);
       Haptics.beat(beat === 0 && $("accent").checked);
     }, Math.max(0, delay));
   }
@@ -245,6 +316,14 @@ $("rampEnabled").addEventListener("change", () => {
 $("accent").addEventListener("change", saveSettings);
 
 // ===================== Transport =====================
+// Reflect play/stop state onto every control (main button + floating button).
+function reflectPlaying() {
+  playBtn.textContent = isPlaying ? "STOP" : "PLAY";
+  playBtn.classList.toggle("playing", isPlaying);
+  metroFabGlyph.textContent = isPlaying ? "■" : "▶";
+  metroFab.classList.toggle("playing", isPlaying);
+}
+
 function start() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === "suspended") audioCtx.resume();
@@ -258,9 +337,7 @@ function start() {
   startSecondsRamp();
   updateRampStatus();
 
-  pendulum.classList.add("swinging");
-  playBtn.innerHTML = '<span class="play-ico">■</span> Stop';
-  playBtn.classList.add("playing");
+  reflectPlaying();
 }
 
 function stop() {
@@ -268,13 +345,22 @@ function stop() {
   clearInterval(schedulerTimer);
   stopSecondsRamp();
   for (const d of beatDots.children) d.classList.remove("active");
-  resetPendulum();
-  playBtn.innerHTML = '<span class="play-ico">▶</span> Start';
-  playBtn.classList.remove("playing");
   rampStatus.textContent = "";
+  reflectPlaying();
 }
 
 playBtn.addEventListener("click", () => isPlaying ? stop() : start());
+metroFab.addEventListener("click", () => isPlaying ? stop() : start());
+
+// Show the floating transport only while the metronome card is off-screen.
+if ("IntersectionObserver" in window) {
+  const metroCard = $("metronomeCard");
+  const fabObserver = new IntersectionObserver(
+    ([entry]) => metroFab.classList.toggle("visible", !entry.isIntersecting),
+    { threshold: 0 }
+  );
+  fabObserver.observe(metroCard);
+}
 
 // Spacebar toggles play/stop
 document.addEventListener("keydown", (e) => {
@@ -398,24 +484,35 @@ $("presetName").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); $("presetSave").click(); }
 });
 
-// ===================== Tab / fretboard generation =====================
-// Standard tuning. Strings indexed 1 (high E) .. 6 (low E).
+// ===================== Pitch helpers =====================
 const NOTE_PC = {
   "C":0,"C#":1,"Db":1,"D":2,"D#":3,"Eb":3,"E":4,"F":5,"F#":6,"Gb":6,
   "G":7,"G#":8,"Ab":8,"A":9,"A#":10,"Bb":10,"B":11
 };
-const OPEN_MIDI = { 1:64, 2:59, 3:55, 4:50, 5:45, 6:40 }; // e B G D A E
-const STRING_LABEL = { 1:"e", 2:"B", 3:"G", 4:"D", 5:"A", 6:"E" };
 
-// Build an in-position scale anchored on the root (lowest note = root on string 6).
-// We walk EVERY consecutive scale tone going up, staying on a string until the next
-// note exceeds the hand span, then shifting to the next string. This guarantees no
-// scale degree is skipped (the old fixed-window box silently dropped 3rds, 6ths and
-// leading tones that fell just outside the window).
-function buildTab(scale) {
+// Fretted-instrument tunings. Strings indexed 1 (highest) .. count (lowest).
+// open = open-string MIDI note, label = string letter, span = fret reach.
+const GUITAR_TUNING = {
+  open:  { 1:64, 2:59, 3:55, 4:50, 5:45, 6:40 }, // e B G D A E
+  label: { 1:"e", 2:"B", 3:"G", 4:"D", 5:"A", 6:"E" },
+  count: 6, span: 4
+};
+const BASS_TUNING = {
+  open:  { 1:43, 2:38, 3:33, 4:28 }, // G D A E
+  label: { 1:"G", 2:"D", 3:"A", 4:"E" },
+  count: 4, span: 4
+};
+
+// ===================== Tab / fretboard generation =====================
+// Build an in-position scale anchored on the root (lowest note = root on the
+// lowest string). We walk EVERY consecutive scale tone going up, staying on a
+// string until the next note exceeds the hand span, then shifting to the next
+// string. This guarantees no scale degree is skipped.
+function buildStringTab(scale, tuning) {
+  const lo = tuning.count;                                  // lowest string index
   const rootPc = NOTE_PC[scale.root];
-  const anchor = (rootPc - (OPEN_MIDI[6] % 12) + 12) % 12; // root fret on low E
-  const posHi = anchor + 4;                                // 5-fret reach (incl. stretch)
+  const anchor = (rootPc - (tuning.open[lo] % 12) + 12) % 12; // root fret on lowest string
+  const posHi = anchor + tuning.span;                      // reach incl. stretch
 
   // Interval steps (in semitones) between consecutive scale tones, cyclic, summing to 12.
   const pcs = scale.notes.map(n => NOTE_PC[n]);
@@ -423,27 +520,27 @@ function buildTab(scale) {
     ((pcs[(i + 1) % pcs.length] - p) + 12) % 12 || 12
   );
 
-  // Start on the root, low E, then climb the scale across the neck.
-  const seq = [{ s: 6, fret: anchor, midi: OPEN_MIDI[6] + anchor, pc: rootPc }];
-  let curString = 6;
-  let midi = OPEN_MIDI[6] + anchor;
+  // Start on the root, lowest string, then climb the scale across the neck.
+  const seq = [{ s: lo, fret: anchor, midi: tuning.open[lo] + anchor, pc: rootPc }];
+  let curString = lo;
+  let midi = tuning.open[lo] + anchor;
   let i = 0;
   while (seq.length < 40) {
     midi += steps[i % steps.length];
     i++;
     let s = curString;
-    let fret = midi - OPEN_MIDI[s];
-    while (fret > posHi && s > 1) { s--; fret = midi - OPEN_MIDI[s]; }
+    let fret = midi - tuning.open[s];
+    while (fret > posHi && s > 1) { s--; fret = midi - tuning.open[s]; }
     if (fret > posHi || fret < 0) break; // ran off the top of the neck
     curString = s;
     seq.push({ s, fret, midi, pc: midi % 12 });
   }
 
-  // Render six tab lines. Each note is one column; root notes marked with '*'.
+  // Render one tab line per string. Each note is one column; roots marked with '*'.
   const lines = {};
-  for (let s = 1; s <= 6; s++) lines[s] = "";
+  for (let s = 1; s <= tuning.count; s++) lines[s] = "";
   seq.forEach(n => {
-    for (let s = 1; s <= 6; s++) {
+    for (let s = 1; s <= tuning.count; s++) {
       if (s === n.s) {
         const isRoot = n.pc === rootPc;
         const cell = String(n.fret).padStart(2, "-");
@@ -455,59 +552,165 @@ function buildTab(scale) {
   });
 
   let tab = "";
-  for (let s = 1; s <= 6; s++) tab += `${STRING_LABEL[s]}|${lines[s]}-|\n`;
+  for (let s = 1; s <= tuning.count; s++) tab += `${tuning.label[s]}|${lines[s]}-|\n`;
 
   const posLabel = anchor === 0 ? "open position" : `frets ${anchor}–${posHi}`;
   return { tab: tab.trimEnd(), posLabel };
 }
 
-// ===================== Scales UI =====================
-const scaleList = $("scaleList");
+// ===================== Piano keyboard generation =====================
+// One octave, root .. root (inclusive of the upper octave). Scale tones are
+// highlighted; right-hand fingerings (if supplied) print under the white keys.
+const WHITE_PCS = [0, 2, 4, 5, 7, 9, 11];          // C D E F G A B
+const BLACK_AFTER = { 0: 1, 2: 3, 5: 6, 7: 8, 9: 10 }; // pc -> black key just above it
 
-function renderScales(filter = "") {
-  scaleList.innerHTML = "";
-  const f = filter.trim().toLowerCase();
-  const shown = SCALES.filter(s =>
-    !f || s.name.toLowerCase().includes(f) || s.tag.toLowerCase().includes(f)
-  );
-  if (!shown.length) {
-    // Build with textContent so the user's search text can't inject markup.
-    scaleList.innerHTML = "";
-    const p = document.createElement("p");
-    p.className = "hint";
-    p.textContent = `No scales match "${filter}".`;
-    scaleList.appendChild(p);
-    return;
+function buildKeyboard(scale) {
+  const rootPc = NOTE_PC[scale.root];
+  const scalePcs = scale.notes.map(n => NOTE_PC[n]);
+  // map pitch-class -> finger label (best effort; first occurrence wins)
+  const fingerByPc = {};
+  if (scale.fingering) {
+    scalePcs.forEach((pc, i) => {
+      if (fingerByPc[pc] === undefined && scale.fingering[i] !== undefined) {
+        fingerByPc[pc] = scale.fingering[i];
+      }
+    });
   }
-  shown.forEach((s) => {
-    const item = document.createElement("div");
-    item.className = "scale-item";
 
-    const stepChips = s.pattern.map(p => {
+  const inScale = (pc) => scalePcs.includes(pc);
+
+  // Walk one octave of white keys starting at the root's nearest white key.
+  // (Roots that are black keys still highlight correctly via the black overlay.)
+  const startWhiteIdx = WHITE_PCS.indexOf(rootPc) >= 0
+    ? WHITE_PCS.indexOf(rootPc)
+    : 0; // non-white root -> start the diagram at C for a stable layout
+
+  let keysHTML = "";
+  for (let w = 0; w <= 7; w++) {                   // 7 white keys + octave key
+    const pc = WHITE_PCS[(startWhiteIdx + w) % 7];
+    const on = inScale(pc);
+    const isRoot = pc === rootPc;
+    const finger = on && fingerByPc[pc] !== undefined ? fingerByPc[pc] : "";
+    keysHTML += `<span class="key white${on ? " on" : ""}${isRoot ? " root" : ""}">`
+      + (finger ? `<span class="key-finger">${finger}</span>` : "")
+      + `</span>`;
+
+    // black key sitting to the upper-right of this white key (not after the octave key)
+    if (w < 7 && BLACK_AFTER[pc] !== undefined) {
+      const bpc = BLACK_AFTER[pc];
+      const bon = inScale(bpc);
+      const bRoot = bpc === rootPc;
+      keysHTML += `<span class="key black${bon ? " on" : ""}${bRoot ? " root" : ""}"></span>`;
+    }
+  }
+  return `<div class="keyboard">${keysHTML}</div>`;
+}
+
+// ===================== Drum notation generation =====================
+function buildDrumExercise(ex) {
+  if (ex.type === "groove") {
+    let grid = "";
+    ex.lanes.forEach(l => { grid += `${l.name} |${l.hits}|\n`; });
+    return `
+      <div class="scale-meta"><b>Pattern</b> — x = hi-hat/cymbal, o = snare/kick, · = rest. Read left to right.</div>
+      <pre class="tab">${grid.trimEnd()}</pre>`;
+  }
+  // rudiment: render the sticking as chips. Flam/drag tokens get a grace marker.
+  const chips = ex.sticking.map(tok => {
+    let grace = "", hand = tok;
+    if (tok[0] === "f") { grace = "♪"; hand = tok.slice(1); }   // flam grace note
+    else if (tok[0] === "d") { grace = "♪♪"; hand = tok.slice(1); } // drag grace notes
+    const cls = hand === "R" ? "chip stick r" : "chip stick l";
+    return `<span class="${cls}">${grace ? `<sup>${grace}</sup>` : ""}${hand}</span>`;
+  }).join("");
+  return `
+    <div class="scale-meta"><b>Sticking</b> — R = right hand, L = left hand${ex.sticking.some(t => t[0] === "f" || t[0] === "d") ? " (♪ = grace note)" : ""}.</div>
+    <div class="pattern-row sticking-row">${chips}</div>`;
+}
+
+// ===================== Exercise body renderers =====================
+// Each renderer returns the inner HTML of a .scale-body for one exercise.
+const RENDERERS = {
+  string(ex, instrument) {
+    const tuning = instrument === "bass" ? BASS_TUNING : GUITAR_TUNING;
+    const stepChips = ex.pattern.map(p => {
       const label = p === "1.5" ? "1½" : p;
       return `<span class="chip step">${label}</span>`;
     }).join('<span class="chip" style="border:none;background:none;padding:2px">→</span>');
+    const degChips = ex.degrees.map(d => `<span class="chip">${d}</span>`).join("");
+    const noteChips = ex.notes.map(n => `<span class="chip">${n}</span>`).join("");
+    const { tab, posLabel } = buildStringTab(ex, tuning);
+    const lowLabel = tuning.label[tuning.count];
+    const hiLabel = tuning.label[1];
+    return `
+      <p>${ex.desc}</p>
+      <div class="scale-meta"><b>Degrees</b></div>
+      <div class="pattern-row">${degChips}</div>
+      <div class="scale-meta"><b>Step pattern</b> (W=whole, H=half, 1½=aug 2nd)</div>
+      <div class="pattern-row">${stepChips}</div>
+      <div class="scale-meta"><b>Example</b> starting on ${ex.root}</div>
+      <div class="pattern-row">${noteChips}</div>
+      <div class="scale-meta"><b>Practice position</b> — ${posLabel}, full scale ascending across all ${tuning.count} strings starting on the root (<span class="root-mark">*</span> = root). Read low ${lowLabel} (bottom) to high ${hiLabel} (top).</div>
+      <pre class="tab">${tab}</pre>`;
+  },
+  keys(ex) {
+    const stepChips = ex.pattern.map(p => {
+      const label = p === "1.5" ? "1½" : p;
+      return `<span class="chip step">${label}</span>`;
+    }).join('<span class="chip" style="border:none;background:none;padding:2px">→</span>');
+    const noteChips = ex.notes.map((n, i) => {
+      const f = ex.fingering && ex.fingering[i] ? `<sup>${ex.fingering[i]}</sup>` : "";
+      return `<span class="chip">${n}${f}</span>`;
+    }).join("");
+    const fingerNote = ex.fingering
+      ? ` Superscripts and the keyboard show the suggested right-hand fingering (1 = thumb).`
+      : "";
+    return `
+      <p>${ex.desc}</p>
+      ${buildKeyboard(ex)}
+      <div class="scale-meta"><b>Notes</b> (root <span class="root-mark">●</span>)${fingerNote}</div>
+      <div class="pattern-row">${noteChips}</div>
+      <div class="scale-meta"><b>Step pattern</b> (W=whole, H=half, 1½=aug 2nd)</div>
+      <div class="pattern-row">${stepChips}</div>`;
+  },
+  drum(ex) {
+    return `
+      <p>${ex.desc}</p>
+      ${buildDrumExercise(ex)}`;
+  }
+};
 
-    const degChips = s.degrees.map(d => `<span class="chip">${d}</span>`).join("");
-    const noteChips = s.notes.map(n => `<span class="chip">${n}</span>`).join("");
-    const { tab, posLabel } = buildTab(s);
+// ===================== Exercises UI =====================
+const scaleList = $("scaleList");
+let currentInstrument = "guitar";
 
+function renderExercises(filter = "") {
+  scaleList.innerHTML = "";
+  const inst = INSTRUMENTS[currentInstrument];
+  const f = filter.trim().toLowerCase();
+  const shown = inst.exercises.filter(ex =>
+    !f || ex.name.toLowerCase().includes(f) || (ex.tag || "").toLowerCase().includes(f)
+  );
+  if (!shown.length) {
+    // Build with textContent so the user's search text can't inject markup.
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = `No ${inst.label.toLowerCase()} exercises match "${filter}".`;
+    scaleList.appendChild(p);
+    return;
+  }
+  const render = RENDERERS[inst.kind];
+  shown.forEach((ex) => {
+    const item = document.createElement("div");
+    item.className = "scale-item";
+
+    const meta = ex.notes ? `${ex.tag} · ${ex.notes.length} notes` : ex.tag;
     item.innerHTML = `
       <div class="scale-head">
-        <span class="scale-name">${s.name}</span>
-        <span class="scale-tag">${s.tag} · ${s.notes.length} notes</span>
+        <span class="scale-name">${ex.name}</span>
+        <span class="scale-tag">${meta}</span>
       </div>
-      <div class="scale-body">
-        <p>${s.desc}</p>
-        <div class="scale-meta"><b>Degrees</b></div>
-        <div class="pattern-row">${degChips}</div>
-        <div class="scale-meta"><b>Step pattern</b> (W=whole, H=half, 1½=aug 2nd)</div>
-        <div class="pattern-row">${stepChips}</div>
-        <div class="scale-meta"><b>Example</b> starting on ${s.root}</div>
-        <div class="pattern-row">${noteChips}</div>
-        <div class="scale-meta"><b>Practice position</b> — ${posLabel}, full scale ascending across all six strings starting on the root (<span class="root-mark">*</span> = root). Read low E (bottom) to high e (top).</div>
-        <pre class="tab">${tab}</pre>
-      </div>`;
+      <div class="scale-body">${render(ex, currentInstrument)}</div>`;
 
     item.querySelector(".scale-head").addEventListener("click", () =>
       item.classList.toggle("open")
@@ -516,8 +719,21 @@ function renderScales(filter = "") {
   });
 }
 
-$("scaleSearch").addEventListener("input", (e) => renderScales(e.target.value));
-renderScales();
+// Instrument tab bar
+const scaleSearch = $("scaleSearch");
+document.querySelectorAll("#instrumentTabs .tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    if (btn.dataset.instrument === currentInstrument) return;
+    document.querySelectorAll("#instrumentTabs .tab-btn")
+      .forEach(b => b.classList.toggle("active", b === btn));
+    currentInstrument = btn.dataset.instrument;
+    if (scaleSearch) scaleSearch.value = "";
+    renderExercises();
+  });
+});
+
+scaleSearch.addEventListener("input", (e) => renderExercises(e.target.value));
+renderExercises();
 
 // ===================== Boot =====================
 restoring = true;

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#ECEAE3"/>
+
+  <!-- dial track (300° hairline) -->
+  <path d="M 342.00 806.45 A 340 340 0 1 1 682.00 806.45" fill="none" stroke="rgba(28,27,24,0.20)" stroke-width="14" stroke-linecap="round"/>
+  <!-- progress arc (ink) -->
+  <path d="M 342.00 806.45 A 340 340 0 1 1 806.45 342.00" fill="none" stroke="#1C1B18" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- knob: soft shadow + red disc with cream ring -->
+  <circle cx="806.45" cy="349.00" r="34" fill="rgba(120,40,30,0.28)"/>
+  <circle cx="806.45" cy="342.00" r="32" fill="#E6483B" stroke="#ECEAE3" stroke-width="11"/>
+
+  <!-- wordmark -->
+  <text x="512" y="542" text-anchor="middle"
+        font-family="Space Grotesk" font-weight="700" font-size="150"
+        letter-spacing="-3" fill="#1C1B18">PULSE</text>
+
+  <!-- BPM caption -->
+  <text x="512" y="662" text-anchor="middle"
+        font-family="Space Mono" font-weight="700" font-size="44"
+        letter-spacing="10" fill="#8E8B82">BPM</text>
+</svg>

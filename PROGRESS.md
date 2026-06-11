@@ -69,6 +69,19 @@
 - **Everything is built** except the manual Xcode signing/run step, which requires the
   Apple Developer account and a physical device for haptics.
 
+## Round 2 — redesign from user's inspo (~/dev/metronome/inspo/)  — ✅ DONE (pending visual sign-off)
+Direction: warm cream base, mono ink + single RED accent, soft neumorphism, bold type
++ pixel/dot-matrix labels (Pixelify Sans). Dropped the Y2K wood/chrome/green-LCD look.
+- [x] Hero = circular hairline tempo **dial** (300° arc, gap at bottom): draggable red knob
+  sets BPM, +/- nudge buttons, big bold BPM number + Italian tempo marking + beat pulse in center
+- [x] Red play button (PLAY/STOP), neumorphic TAP pad, pill toggle switches, dotted beat detents
+- [x] Cream neumorphic cards, minimal recessed selects/inputs, pixel-font eyebrows/labels/tags
+- [x] Scales & speed-trainer restyled to match; guitar tab now light (not green LCD)
+- [x] Swapped LCD font → Pixelify Sans (`www/assets/fonts/Pixel.woff2`); removed DSEG7 file
+- [x] app.js: removed pendulum/slider; added dial geometry + pointer-drag + beat pulse + tempo names
+- [x] `node --check` clean, no stray refs, `npx cap sync ios` clean, reloaded in Safari
+- [ ] USER: visual sign-off in Safari (http://localhost:8137/?v=2)
+
 ## Notes / blockers
 - CocoaPods was missing; installed via Homebrew (1.16.2). No sudo needed.
 - Persistence uses localStorage (reliable in WKWebView) via a `Store` wrapper, not

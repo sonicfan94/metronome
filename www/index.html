@@ -2,75 +2,56 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#2a1a0e">
-<title>Scale Trainer Metronome</title>
-<link rel="stylesheet" href="style.css">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ECEAE3">
+<title>Metronome &amp; Practice</title>
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div class="app">
-  <header>
-    <div class="logo-badge">
-      <h1>Scale&nbsp;Trainer</h1>
-      <span class="logo-sub">METRONOME&nbsp;<i>v2.0</i></span>
-    </div>
-    <p class="tagline">A metronome built for practicing guitar scales</p>
-  </header>
-
   <main>
     <!-- ===== METRONOME ===== -->
-    <section class="card metronome">
-      <div class="card-sheen"></div>
+    <section class="card metronome" id="metronomeCard">
+      <span class="eyebrow">Tempo</span>
 
-      <!-- Skeuomorphic pendulum -->
-      <div class="metro-body" id="metroBody">
-        <div class="metro-scale"></div>
-        <div class="pendulum" id="pendulum">
-          <div class="pendulum-rod"></div>
-          <div class="pendulum-weight"></div>
-        </div>
-        <div class="metro-pivot"></div>
-        <div class="beat-dots" id="beatDots"></div>
-      </div>
+      <div class="dial-wrap" id="dialWrap">
+        <svg class="dial" id="dial" viewBox="0 0 240 240" aria-hidden="true">
+          <path id="dialTrack" class="dial-track" fill="none"></path>
+          <path id="dialProg"  class="dial-prog"  fill="none"></path>
+          <circle id="dialKnob" class="dial-knob" r="10"></circle>
+        </svg>
 
-      <!-- LCD readout -->
-      <div class="lcd-bezel">
-        <div class="lcd">
-          <span class="lcd-digits">
-            <span class="lcd-ghost">888</span>
-            <span class="lcd-num" id="bpmNumber">100</span>
-          </span>
-          <span class="lcd-unit">BPM</span>
+        <button class="dial-step up"   id="bpmUp"   aria-label="Increase BPM">+</button>
+        <button class="dial-step down" id="bpmDown" aria-label="Decrease BPM">−</button>
+
+        <div class="dial-center">
+          <span class="beat-pulse" id="beatPulse"></span>
+          <span class="bpm-num" id="bpmNumber">100</span>
+          <span class="bpm-cap">BPM</span>
+          <span class="tempo-mark" id="tempoMark">Moderato</span>
         </div>
       </div>
 
-      <div class="bpm-display">
-        <button class="bpm-step" id="bpmDown" aria-label="Decrease BPM">−</button>
-        <input type="range" id="bpmSlider" min="40" max="240" value="100" class="slider">
-        <button class="bpm-step" id="bpmUp" aria-label="Increase BPM">+</button>
-      </div>
+      <div class="beat-dots" id="beatDots"></div>
 
       <div class="action-row">
         <button class="tap-btn" id="tapBtn">TAP<span>tempo</span></button>
-        <button class="play-btn" id="playBtn"><span class="play-ico">▶</span> Start</button>
+        <button class="play-btn" id="playBtn">PLAY</button>
       </div>
 
-      <div class="controls-row">
+      <div class="seg-row">
         <label class="field">
-          <span>Beats / bar</span>
+          <span class="lbl">Beats / bar</span>
           <select id="beatsPerBar">
-            <option>2</option>
-            <option>3</option>
-            <option selected>4</option>
-            <option>5</option>
-            <option>6</option>
-            <option>7</option>
+            <option>2</option><option>3</option>
+            <option selected>4</option><option>5</option>
+            <option>6</option><option>7</option>
           </select>
         </label>
         <label class="field">
-          <span>Subdivision</span>
+          <span class="lbl">Subdivision</span>
           <select id="subdivision">
             <option value="1">Quarter</option>
             <option value="2">Eighths</option>
@@ -82,11 +63,11 @@
 
       <div class="switch-row">
         <label class="switch-field">
-          <span>Accent beat 1</span>
+          <span class="lbl">Accent beat 1</span>
           <span class="switch"><input type="checkbox" id="accent" checked><i></i></span>
         </label>
         <label class="switch-field">
-          <span>Haptics</span>
+          <span class="lbl">Haptics</span>
           <span class="switch"><input type="checkbox" id="haptics"><i></i></span>
         </label>
       </div>
@@ -94,32 +75,31 @@
 
     <!-- ===== SPEED TRAINER ===== -->
     <section class="card speedtrainer">
-      <div class="card-sheen"></div>
-      <h2><span class="ico">⏫</span> Speed Trainer</h2>
+      <span class="eyebrow">Speed Trainer</span>
       <p class="hint">Automatically ramp the tempo up as you play.</p>
       <label class="switch-field standalone">
-        <span>Enable gradual speed-up</span>
+        <span class="lbl">Enable gradual speed-up</span>
         <span class="switch"><input type="checkbox" id="rampEnabled"><i></i></span>
       </label>
 
       <div class="ramp-grid" id="rampGrid">
         <label class="field">
-          <span>Increase by (BPM)</span>
+          <span class="lbl">Increase by (BPM)</span>
           <input type="number" id="rampAmount" value="5" min="1" max="50">
         </label>
         <label class="field">
-          <span>Every</span>
+          <span class="lbl">Every</span>
           <input type="number" id="rampEvery" value="4" min="1" max="64">
         </label>
         <label class="field">
-          <span>Unit</span>
+          <span class="lbl">Unit</span>
           <select id="rampUnit">
             <option value="bars" selected>bars</option>
             <option value="seconds">seconds</option>
           </select>
         </label>
         <label class="field">
-          <span>Stop at (BPM)</span>
+          <span class="lbl">Stop at (BPM)</span>
           <input type="number" id="rampMax" value="160" min="40" max="300">
         </label>
       </div>
@@ -128,8 +108,7 @@
 
     <!-- ===== PRESETS ===== -->
     <section class="card presets">
-      <div class="card-sheen"></div>
-      <h2><span class="ico">💾</span> Presets</h2>
+      <span class="eyebrow">Presets</span>
       <p class="hint">Save the current tempo &amp; settings to recall later. Your last setup is remembered automatically.</p>
       <div class="preset-save">
         <input type="text" id="presetName" class="search" placeholder="Preset name…" maxlength="40">
@@ -138,20 +117,31 @@
       <div class="preset-list" id="presetList"></div>
     </section>
 
-    <!-- ===== SCALES ===== -->
+    <!-- ===== PRACTICE ===== -->
     <section class="card scales">
-      <div class="card-sheen"></div>
-      <h2><span class="ico">📚</span> Top 20 Guitar Scales</h2>
-      <p class="hint">Tap a scale to see its pattern. Degrees are scale steps; "W" = whole step, "H" = half step.</p>
-      <input type="text" id="scaleSearch" class="search" placeholder="Search scales…">
+      <span class="eyebrow">Practice</span>
+      <p class="hint">Pick an instrument, then tap an exercise to see its pattern, diagram and how to play it.</p>
+      <div class="instrument-tabs" id="instrumentTabs">
+        <button class="tab-btn active" data-instrument="guitar">Guitar</button>
+        <button class="tab-btn" data-instrument="bass">Bass</button>
+        <button class="tab-btn" data-instrument="piano">Piano</button>
+        <button class="tab-btn" data-instrument="drums">Drums</button>
+      </div>
+      <input type="text" id="scaleSearch" class="search" placeholder="Search exercises…">
       <div class="scale-list" id="scaleList"></div>
     </section>
   </main>
 
-  <footer>Built for guitar practice • use headphones for the clearest click</footer>
+  <footer>Built for music practice · use headphones for the clearest click</footer>
+
+  <!-- Floating transport: appears when the metronome card scrolls out of view -->
+  <button class="metro-fab" id="metroFab" aria-label="Start or stop metronome">
+    <span class="metro-fab-glyph" id="metroFabGlyph">▶</span>
+    <span class="metro-fab-bpm"><b id="metroFabBpm">100</b> BPM</span>
+  </button>
 </div>
 
-<script src="scales.js"></script>
-<script src="app.js"></script>
+<script src="exercises.js?v=1"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
