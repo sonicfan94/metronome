@@ -1,6 +1,6 @@
 {
   "appId": "com.achandler.scaletrainer",
-  "appName": "Scale Trainer",
+  "appName": "SteadyState",
   "webDir": "www",
   "ios": {
     "contentInset": "always"

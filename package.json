@@ -1,15 +1,17 @@
 {
-  "name": "scale-trainer",
+  "name": "steadystate",
   "version": "2.0.0",
-  "description": "Scale Trainer — a Y2K skeuomorphic metronome built for practicing guitar scales.",
+  "description": "SteadyState — an offline metronome and practice companion for guitar, bass, piano, and drums.",
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server --directory www 8080",
     "sync": "cap sync",
     "ios": "cap open ios",
-    "icon": "node tools/make-icon.mjs"
+    "icon": "node tools/make-icon.mjs",
+    "splash": "node tools/make-splash.mjs"
   },
   "dependencies": {
+    "@capacitor-community/keep-awake": "^5.0.0",
     "@capacitor/core": "^6.2.0",
     "@capacitor/haptics": "^6.0.2",
     "@capacitor/preferences": "^6.0.3"

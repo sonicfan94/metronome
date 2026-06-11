@@ -289,6 +289,31 @@ body {
 .switch input:checked + i { background: var(--accent); box-shadow: inset 2px 2px 4px rgba(150,40,30,0.5); }
 .switch input:checked + i::after { transform: translateX(20px); background: #fff; }
 
+/* ===== Click volume slider ===== */
+.volume-field { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.volume-field .lbl { display: flex; justify-content: space-between; align-items: baseline; }
+.vol-val { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 12px; margin: 0;
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: inset 2px 2px 5px var(--sh-dark), inset -2px -2px 5px var(--sh-lite);
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 2px 2px 5px rgba(150,50,40,0.4), -2px -2px 5px var(--sh-lite);
+}
+.slider::-moz-range-thumb {
+  width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 2px 2px 5px rgba(150,50,40,0.4), -2px -2px 5px var(--sh-lite);
+}
+.slider:focus { outline: 2px solid var(--accent); outline-offset: 3px; }
+
 /* ===== Speed trainer ===== */
 .ramp-grid {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;

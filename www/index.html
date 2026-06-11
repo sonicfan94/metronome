@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ECEAE3">
-<title>Metronome &amp; Practice</title>
-<link rel="stylesheet" href="style.css?v=8">
+<title>SteadyState</title>
+<link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
 <div class="app">
@@ -28,7 +28,7 @@
 
         <div class="dial-center">
           <span class="beat-pulse" id="beatPulse"></span>
-          <span class="bpm-num" id="bpmNumber">100</span>
+          <span class="bpm-num" id="bpmNumber" aria-live="polite" aria-label="100 BPM">100</span>
           <span class="bpm-cap">BPM</span>
           <span class="tempo-mark" id="tempoMark">Moderato</span>
         </div>
@@ -37,8 +37,8 @@
       <div class="beat-dots" id="beatDots"></div>
 
       <div class="action-row">
-        <button class="tap-btn" id="tapBtn">TAP<span>tempo</span></button>
-        <button class="play-btn" id="playBtn">PLAY</button>
+        <button class="tap-btn" id="tapBtn" aria-label="Tap tempo">TAP<span>tempo</span></button>
+        <button class="play-btn" id="playBtn" aria-live="polite">PLAY</button>
       </div>
 
       <div class="seg-row">
@@ -71,6 +71,12 @@
           <span class="switch"><input type="checkbox" id="haptics"><i></i></span>
         </label>
       </div>
+
+      <label class="volume-field">
+        <span class="lbl">Click volume <span class="vol-val" id="volumeVal">80%</span></span>
+        <input type="range" class="slider" id="volume" min="0" max="100" value="80"
+               aria-label="Click volume" aria-valuetext="80 percent">
+      </label>
     </section>
 
     <!-- ===== SPEED TRAINER ===== -->
@@ -142,6 +148,6 @@
 </div>
 
 <script src="exercises.js?v=1"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

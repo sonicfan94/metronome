@@ -33,6 +33,7 @@ let bpm = 100;
 function setBpm(v) {
   bpm = Math.min(240, Math.max(40, Math.round(v)));
   bpmNumber.textContent = bpm;
+  bpmNumber.setAttribute("aria-label", bpm + " BPM");
   metroFabBpm.textContent = bpm;
   tempoMark.textContent = tempoName(bpm);
   drawDial();
@@ -147,12 +148,33 @@ function pulse(isAccent) {
   if (isAccent) beatPulse.classList.add("accent");
 }
 
+// ---- Master volume ----
+// A single GainNode between every click and the speakers. 0–100% slider maps to 0–1 gain.
+let masterGain = null;
+let clickVolume = 0.8;
+function ensureMasterGain() {
+  if (!masterGain && audioCtx) {
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = clickVolume;
+    masterGain.connect(audioCtx.destination);
+  }
+}
+function setVolume(pct) {
+  clickVolume = Math.min(1, Math.max(0, pct / 100));
+  if (masterGain) masterGain.gain.value = clickVolume;
+  const v = Math.round(clickVolume * 100);
+  $("volumeVal").textContent = v + "%";
+  $("volume").setAttribute("aria-valuetext", v + " percent");
+}
+$("volume").addEventListener("input", (e) => { setVolume(+e.target.value); saveSettings(); });
+
 // ---- Click sound ----
 function playClick(time, isAccent, isMainBeat) {
+  ensureMasterGain();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(masterGain || audioCtx.destination);
 
   // Accent = high pitch, main beat = mid, subdivision = soft/low
   let freq = 800;
@@ -225,6 +247,15 @@ const Haptics = {
 };
 $("haptics").addEventListener("change", () => { Haptics.beat(true); saveSettings(); });
 
+// ===================== Keep awake =====================
+// Stop iOS auto-lock from suspending the WebView (and killing the click) mid-practice.
+// Defensive like Haptics above so the plain-web build is unaffected.
+const Wake = {
+  plugin() { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.KeepAwake; },
+  on()  { const p = this.plugin(); if (p) { try { p.keepAwake(); } catch (e) {} } },
+  off() { const p = this.plugin(); if (p) { try { p.allowSleep(); } catch (e) {} } }
+};
+
 // ===================== Tap tempo =====================
 let tapTimes = [];
 function tapTempo() {
@@ -243,7 +274,9 @@ function tapTempo() {
   setTimeout(() => tapBtn.classList.remove("flash"), 90);
   Haptics.beat(false);
 }
-tapBtn.addEventListener("click", tapTempo);
+// pointerdown (not click) so tempo registers on finger contact, not release —
+// lower latency and far less jitter in the tapped interval.
+tapBtn.addEventListener("pointerdown", tapTempo);
 
 // ===================== Speed trainer =====================
 function rampOn() { return $("rampEnabled").checked; }
@@ -336,6 +369,7 @@ function start() {
   schedulerTimer = setInterval(scheduler, lookahead);
   startSecondsRamp();
   updateRampStatus();
+  Wake.on();
 
   reflectPlaying();
 }
@@ -346,6 +380,10 @@ function stop() {
   stopSecondsRamp();
   for (const d of beatDots.children) d.classList.remove("active");
   rampStatus.textContent = "";
+  Wake.off();
+  // Idle the audio hardware between sessions (minor battery win). start() resumes it,
+  // and the interruption-recovery handler is gated on isPlaying so it won't fight this.
+  if (audioCtx && audioCtx.state === "running") audioCtx.suspend();
   reflectPlaying();
 }
 
@@ -370,21 +408,73 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Recover after interruptions (phone call, Siri, alarm, screen lock). These leave
+// audioCtx "suspended"/"interrupted" so the scheduler runs but produces no sound.
+// Resume it and rebase nextNoteTime so we don't burst-fire a backlog of clicks.
+function recoverAudio() {
+  if (!isPlaying || !audioCtx) return;
+  if (audioCtx.state !== "running") {
+    audioCtx.resume().then(() => {
+      nextNoteTime = audioCtx.currentTime + 0.05;
+    }).catch(() => {});
+  }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") recoverAudio();
+});
+window.addEventListener("focus", recoverAudio);
+
 // ===================== Persistence & presets =====================
-// localStorage works reliably inside the iOS WKWebView Capacitor uses; the thin
-// Store wrapper keeps the door open for @capacitor/preferences later if needed.
+// WKWebView localStorage can be evicted under storage pressure, losing presets. On
+// native we persist to @capacitor/preferences (durable) behind a synchronous in-memory
+// cache so the rest of the app stays sync; localStorage is the source of truth for the
+// plain-web build and a mirror/fallback everywhere else.
 const SETTINGS_KEY = "st_settings_v1";
 const PRESETS_KEY = "st_presets_v1";
+const Prefs = () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences;
+const cache = {};
+
 const Store = {
-  get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } },
-  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  get(key) {
+    if (key in cache) return cache[key];
+    try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+  },
+  set(key, val) {
+    cache[key] = val;
+    const json = JSON.stringify(val);
+    try { localStorage.setItem(key, json); } catch (e) {}        // web fallback / mirror
+    const p = Prefs();
+    if (p) { try { p.set({ key, value: json }); } catch (e) {} } // durable native store
+  }
 };
+
+// Load durable values into the cache before first render. On native first run
+// (Preferences empty), migrate any existing localStorage data over.
+async function initStore() {
+  const p = Prefs();
+  if (!p) return; // plain web: localStorage is the source of truth, nothing to preload
+  for (const key of [SETTINGS_KEY, PRESETS_KEY]) {
+    try {
+      const { value } = await p.get({ key });
+      if (value != null) {
+        cache[key] = JSON.parse(value);
+      } else {
+        const legacy = localStorage.getItem(key);
+        if (legacy != null) {
+          cache[key] = JSON.parse(legacy);
+          try { await p.set({ key, value: legacy }); } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+}
 
 function collectSettings() {
   return {
     bpm,
     beatsPerBar: $("beatsPerBar").value,
     subdivision: $("subdivision").value,
+    volume: $("volume").value,
     accent: $("accent").checked,
     haptics: $("haptics").checked,
     rampEnabled: $("rampEnabled").checked,
@@ -400,6 +490,7 @@ function applySettings(s) {
   if (s.bpm) setBpm(s.bpm);
   if (s.beatsPerBar) $("beatsPerBar").value = s.beatsPerBar;
   if (s.subdivision) $("subdivision").value = s.subdivision;
+  if (s.volume != null) { $("volume").value = s.volume; setVolume(+s.volume); }
   $("accent").checked = !!s.accent;
   $("haptics").checked = !!s.haptics;
   $("rampEnabled").checked = !!s.rampEnabled;
@@ -442,7 +533,7 @@ function renderPresets() {
     load.innerHTML = `<span class="p-name"></span> <span class="p-meta"></span>`;
     load.querySelector(".p-name").textContent = preset.name;
     load.querySelector(".p-meta").textContent =
-      `${preset.settings.bpm} BPM · ${preset.settings.beatsPerBar}/4`;
+      `${preset.settings.bpm} BPM · ${preset.settings.beatsPerBar} beats`;
     load.addEventListener("click", () => {
       restoring = true;
       applySettings(preset.settings);
@@ -736,7 +827,11 @@ scaleSearch.addEventListener("input", (e) => renderExercises(e.target.value));
 renderExercises();
 
 // ===================== Boot =====================
-restoring = true;
-applySettings(Store.get(SETTINGS_KEY));
-restoring = false;
-renderPresets();
+async function boot() {
+  await initStore();
+  restoring = true;
+  applySettings(Store.get(SETTINGS_KEY));
+  restoring = false;
+  renderPresets();
+}
+boot();
