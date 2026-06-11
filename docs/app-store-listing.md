@@ -50,7 +50,8 @@ Primary: Music
 4+ (no objectionable content; questionnaire should yield 4+)
 
 ## Support URL
-*(HUMAN: provide — e.g. a GitHub Pages page or mailto landing)*
+Drafted as `docs/support.html`. Once GitHub Pages is enabled (Phase 1), it goes live at
+`https://<username>.github.io/<repo>/support.html` — paste that into App Store Connect.
 
 ## Privacy policy URL
 *(HUMAN: host docs/privacy.html and paste the URL)*

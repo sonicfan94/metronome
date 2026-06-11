@@ -144,7 +144,7 @@
 - [ ] **HUMAN (agent can draft):** Description, subtitle, keywords, support URL, category
   (Music), age rating questionnaire (should come out 4+). Agents: draft copy emphasizing
   offline + practice tools, not just "metronome" (crowded keyword).
-  **DRAFTED** — `docs/app-store-listing.md` (name/subtitle/description/keywords/category/age). HUMAN: review wording, provide support URL, paste into App Store Connect.
+  **DRAFTED** — `docs/app-store-listing.md` (name/subtitle/description/keywords/category/age) and `docs/support.html` (support page, hosts alongside privacy on GitHub Pages → `.../support.html`). HUMAN: review wording, host, paste URLs into App Store Connect.
 - [ ] **HUMAN:** Screenshots — 6.9" and 6.5" iPhone required (iPad 13" only if iPad support
   kept). Agent can help by serving the app at device-sized viewports for capture, but App Store
   screenshots must come from Simulator/device.
