@@ -1,0 +1,65 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Recessed Housing Inner Shadow -->
+    <filter id="recessShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feComponentTransfer in="SourceAlpha">
+        <feFuncA type="table" tableValues="1 0" />
+      </feComponentTransfer>
+      <feGaussianBlur stdDeviation="15" />
+      <feOffset dx="0" dy="12" result="shadow" />
+      <feFlood flood-color="#1C1B18" flood-opacity="0.15" />
+      <feComposite in2="shadow" operator="in" />
+      <feComposite in2="SourceAlpha" operator="over" />
+    </filter>
+
+    <!-- Main Red Button Gradient -->
+    <radialGradient id="buttonFill" cx="45%" cy="35%" r="65%" fx="45%" fy="35%">
+      <stop offset="0%" stop-color="#E6483B" />
+      <stop offset="100%" stop-color="#C5372C" />
+    </radialGradient>
+
+    <!-- Button Drop Shadow (Neumorphic Pair) -->
+    <filter id="buttonDropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="25" stdDeviation="25" flood-color="#787060" flood-opacity="0.4" />
+      <feDropShadow dx="0" dy="-5" stdDeviation="10" flood-color="#FFFFFF" flood-opacity="0.5" />
+    </filter>
+
+    <!-- Subtle Glint for the top of the button -->
+    <linearGradient id="buttonGlint" x1="512" y1="150" x2="512" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="white" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background (Cream Base) -->
+  <rect width="1024" height="1024" fill="#ECEAE3" />
+
+  <!-- Recessed Housing (The well the button sits in) -->
+  <circle cx="512" cy="512" r="412" fill="#DCD8CD" />
+  <circle cx="512" cy="516" r="410" fill="#E7E4DC" />
+  <circle cx="512" cy="512" r="410" fill="none" stroke="rgba(28,27,24,0.08)" stroke-width="2" />
+
+  <!-- Tick Marks (Machined details) -->
+  <g stroke="#8E8B82" stroke-width="4" stroke-linecap="round">
+    <line x1="512" y1="65" x2="512" y2="85" />
+    <line x1="65" y1="512" x2="85" y2="512" />
+    <line x1="939" y1="512" x2="959" y2="512" />
+  </g>
+
+  <!-- The Main Hero: The Red Button -->
+  <g filter="url(#buttonDropShadow)">
+    <circle cx="512" cy="502" r="360" fill="url(#buttonFill)" />
+    <!-- Tactical surface glint -->
+    <circle cx="512" cy="502" r="360" fill="url(#buttonGlint)" />
+    <!-- Fine button edge stroke -->
+    <circle cx="512" cy="502" r="360" fill="none" stroke="#C5372C" stroke-width="1" />
+  </g>
+
+  <!-- Beat Indicator Dots, engraved on the housing below the button -->
+  <g transform="translate(512, 948)">
+    <circle cx="-66" cy="0" r="11" fill="#1C1B18" opacity="0.75" />
+    <circle cx="-22" cy="0" r="11" stroke="#8E8B82" stroke-width="4" fill="none" />
+    <circle cx="22" cy="0" r="11" stroke="#8E8B82" stroke-width="4" fill="none" />
+    <circle cx="66" cy="0" r="11" stroke="#8E8B82" stroke-width="4" fill="none" />
+  </g>
+</svg>

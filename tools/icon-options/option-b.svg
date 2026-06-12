@@ -1,0 +1,100 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Neumorphic Drop Shadow for Knob -->
+    <filter id="knobShadow" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
+      <feOffset dx="24" dy="24" in="SourceAlpha" result="offOut" />
+      <feGaussianBlur stdDeviation="32" in="offOut" result="blurOut" />
+      <feColorMatrix in="blurOut" type="matrix" values="0 0 0 0 0.47 0 0 0 0 0.44 0 0 0 0 0.38 0 0 0 0.4 0" result="darkShadow" />
+
+      <feOffset dx="-18" dy="-18" in="SourceAlpha" result="offOutLight" />
+      <feGaussianBlur stdDeviation="24" in="offOutLight" result="blurOutLight" />
+      <feColorMatrix in="blurOutLight" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0" result="lightShadow" />
+
+      <feMerge>
+        <feMergeNode in="lightShadow" />
+        <feMergeNode in="darkShadow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Inner Shadow for the Well (Recessed) -->
+    <filter id="wellInnerShadow">
+      <feOffset dx="8" dy="8" />
+      <feGaussianBlur stdDeviation="12" result="offset-blur" />
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+      <feFlood flood-color="#787060" flood-opacity="0.25" result="color" />
+      <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+
+      <feOffset dx="-6" dy="-6" />
+      <feGaussianBlur stdDeviation="8" result="offset-blur-light" />
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur-light" result="inverse-light" />
+      <feFlood flood-color="#FFFFFF" flood-opacity="0.8" result="color-light" />
+      <feComposite operator="in" in="color-light" in2="inverse-light" result="shadow-light" />
+
+      <feMerge>
+        <feMergeNode in="shadow" />
+        <feMergeNode in="shadow-light" />
+      </feMerge>
+    </filter>
+
+    <!-- Radial Gradient for Knob Dimensionality -->
+    <radialGradient id="knobGradient" cx="40%" cy="35%" r="60%" fx="35%" fy="30%">
+      <stop offset="0%" stop-color="#FDFCF9" />
+      <stop offset="100%" stop-color="#E7E4DC" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background Layer (Paper Base) -->
+  <rect width="1024" height="1024" fill="#ECEAE3" />
+
+  <!-- Recessed Well Area -->
+  <circle cx="512" cy="512" r="430" fill="#E7E4DC" />
+  <circle cx="512" cy="512" r="430" fill="transparent" filter="url(#wellInnerShadow)" />
+
+  <!-- Machined Tick Marks (Tempo Scale) -->
+  <g transform="translate(512, 512)">
+    <!-- 60 ticks total -->
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(0)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(30)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(60)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(90)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(120)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(150)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(180)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(210)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(240)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(270)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(300)" />
+    <path d="M 0,-400 L 0,-415" stroke="#1C1B18" stroke-width="4" stroke-linecap="round" opacity="0.15" transform="rotate(330)" />
+
+    <!-- Major 5-tick increments -->
+    <path d="M 0,-390 L 0,-420" stroke="#1C1B18" stroke-width="8" stroke-linecap="square" opacity="0.4" transform="rotate(45)" />
+    <path d="M 0,-390 L 0,-420" stroke="#1C1B18" stroke-width="8" stroke-linecap="square" opacity="0.4" transform="rotate(135)" />
+    <path d="M 0,-390 L 0,-420" stroke="#1C1B18" stroke-width="8" stroke-linecap="square" opacity="0.4" transform="rotate(225)" />
+    <path d="M 0,-390 L 0,-420" stroke="#1C1B18" stroke-width="8" stroke-linecap="square" opacity="0.4" transform="rotate(315)" />
+  </g>
+
+  <!-- The Main Knob Body -->
+  <circle cx="512" cy="512" r="370" fill="url(#knobGradient)" filter="url(#knobShadow)" />
+
+  <!-- Single Red Position Indicator Dot (Pointing to Upper Right ~45deg) -->
+  <circle cx="710" cy="314" r="28" fill="#E6483B" />
+
+  <!-- Center Value (Engraved Look) -->
+  <text
+    x="512"
+    y="555"
+    text-anchor="middle"
+    fill="#1C1B18"
+    font-family="Space Grotesk" font-weight="700" font-size="160" letter-spacing="-4"
+  >120</text>
+
+  <!-- Subtle label at the bottom of the knob in Space Mono -->
+  <text
+    x="512"
+    y="700"
+    text-anchor="middle"
+    fill="#8E8B82"
+    font-family="Space Mono" font-weight="700" font-size="32" letter-spacing="4"
+  >BPM</text>
+</svg>

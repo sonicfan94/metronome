@@ -348,6 +348,32 @@ $("rampEnabled").addEventListener("change", () => {
 );
 $("accent").addEventListener("change", saveSettings);
 
+// ===================== iOS silent-switch workaround =====================
+// WKWebView/Safari give a Web Audio-only page the "ambient" audio session, which
+// the hardware mute switch silences — even though AppDelegate sets .playback.
+// Keeping a looping silent <audio> element playing promotes WebKit's session to
+// media playback (mute switch ignored), and the oscillator clicks ride along.
+// iOS-only: elsewhere it would just flag the tab as "playing audio" for nothing.
+const SilentSwitch = {
+  isIOS: /iP(hone|ad|od)/.test(navigator.userAgent) ||
+         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1),
+  el: null,
+  engage() {
+    if (!this.isIOS) return;
+    if (!this.el) {
+      this.el = new Audio("silence.wav");
+      this.el.loop = true;
+      this.el.setAttribute("playsinline", "");
+      // Must stay unmuted at nonzero volume: WebKit only treats audible media
+      // elements as playback-worthy. The file itself is silence, so no sound.
+    }
+    this.el.play().catch(() => {});
+  },
+  release() {
+    if (this.el) this.el.pause();
+  }
+};
+
 // ===================== Transport =====================
 // Reflect play/stop state onto every control (main button + floating button).
 function reflectPlaying() {
@@ -370,6 +396,7 @@ function start() {
   startSecondsRamp();
   updateRampStatus();
   Wake.on();
+  SilentSwitch.engage();
 
   reflectPlaying();
 }
@@ -381,6 +408,7 @@ function stop() {
   for (const d of beatDots.children) d.classList.remove("active");
   rampStatus.textContent = "";
   Wake.off();
+  SilentSwitch.release();
   // Idle the audio hardware between sessions (minor battery win). start() resumes it,
   // and the interruption-recovery handler is gated on isPlaying so it won't fight this.
   if (audioCtx && audioCtx.state === "running") audioCtx.suspend();
@@ -413,6 +441,9 @@ document.addEventListener("keydown", (e) => {
 // Resume it and rebase nextNoteTime so we don't burst-fire a backlog of clicks.
 function recoverAudio() {
   if (!isPlaying || !audioCtx) return;
+  // Interruptions also pause the silent keep-playback loop; restart it first so
+  // the session is promoted before the clicks resume.
+  SilentSwitch.engage();
   if (audioCtx.state !== "running") {
     audioCtx.resume().then(() => {
       nextNoteTime = audioCtx.currentTime + 0.05;

@@ -18,7 +18,8 @@
   gitignored.
 - Quick web preview: `npm run serve` → http://localhost:8080/. Syntax check: `node --check www/app.js`.
 - Open in Xcode: `npm run ios`.
-- Bundle ID `com.achandler.scaletrainer`, team `B53MNS73SJ`, automatic signing already configured.
+- Bundle ID `com.achandler.steadystate`, team `B53MNS73SJ`, automatic signing already configured.
+  (Changed 2026-06-11 from `com.achandler.scaletrainer`, which was unavailable in the Developer portal.)
 
 ---
 

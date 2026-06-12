@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F0EEE7"/>
+      <stop offset="100%" stop-color="#E8E5DC"/>
+    </linearGradient>
+    <radialGradient id="weight" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#F0594B"/>
+      <stop offset="100%" stop-color="#C5372C"/>
+    </radialGradient>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#paper)"/>
+
+  <!-- swing arc: dashes traced by the arm tip, centered on the pivot -->
+  <path d="M 222 354 A 580 580 0 0 1 802 354" fill="none"
+        stroke="rgba(28,27,24,0.22)" stroke-width="12" stroke-linecap="round"
+        stroke-dasharray="2 58"/>
+
+  <!-- ghost arm at the opposite swing extreme -->
+  <g opacity="0.10">
+    <line x1="512" y1="780" x2="318" y2="247" stroke="#1C1B18" stroke-width="66" stroke-linecap="round"/>
+  </g>
+
+  <!-- pendulum arm tilted right -->
+  <line x1="512" y1="788" x2="710" y2="252" stroke="rgba(110,102,86,0.45)" stroke-width="70" stroke-linecap="round" filter="url(#soft)" transform="translate(6 16)"/>
+  <line x1="512" y1="788" x2="706" y2="248" stroke="#1C1B18" stroke-width="66" stroke-linecap="round"/>
+
+  <!-- red weight on the arm -->
+  <circle cx="652" cy="404" r="124" fill="rgba(120,40,30,0.35)" filter="url(#soft)" transform="translate(4 16)"/>
+  <circle cx="652" cy="398" r="120" fill="url(#weight)"/>
+  <circle cx="652" cy="398" r="120" fill="none" stroke="#ECEAE3" stroke-width="14"/>
+
+  <!-- pivot base -->
+  <circle cx="512" cy="806" r="86" fill="rgba(110,102,86,0.40)" filter="url(#soft)" transform="translate(0 14)"/>
+  <circle cx="512" cy="800" r="84" fill="#1C1B18"/>
+  <circle cx="512" cy="800" r="26" fill="#ECEAE3"/>
+</svg>
